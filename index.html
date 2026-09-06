@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flex Esports</title>
+</head>
+<body style="margin:0; background:#0B0D10; font-family: -apple-system, sans-serif;">
+  <div id="root">
+    <div id="fallback-msg" style="color:#8B93A1; text-align:center; padding:60px 24px; font-size:14px;">
+      Cargando Flex Esports…
+    </div>
+  </div>
+
+  <script>
+    // Surfaces any loading/JS error directly on the page, since iPhone
+    // Safari doesn't give easy access to a console.
+    window.addEventListener("error", function (e) {
+      var el = document.getElementById("root");
+      if (el) {
+        el.innerHTML =
+          '<div style="color:#E4604B;background:#1A1D22;padding:20px;margin:16px;border-radius:8px;font-family:monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;">' +
+          '<b>Error al cargar Flex Esports:</b>\n\n' + (e.message || e) +
+          (e.filename ? '\n\narchivo: ' + e.filename + ':' + e.lineno : '') +
+          '</div>';
+      }
+    });
+    setTimeout(function () {
+      var f = document.getElementById("fallback-msg");
+      if (f) {
+        f.innerHTML =
+          'No terminó de cargar.<br><br>' +
+          'Posibles causas:<br>' +
+          '1) Espera 1-2 minutos más — GitHub Pages puede tardar en activarse la primera vez.<br>' +
+          '2) Revisa tu conexión — esta página necesita internet para cargar React desde unpkg.com.<br>' +
+          '3) Si esperaste y sigue igual, es probable que haya un error de código — recarga la página para ver si aparece un mensaje en rojo aquí arriba.';
+      }
+    }, 6000);
+  </script>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+`;
+
+const C = {
+  bg: "#0B0D10",
+  surface: "#14171C",
+  surface2: "#1B1F26",
+  line: "#262B33",
+  lineStrong: "#363D48",
+  teal: "#4FD1C5",
+  amber: "#F2A93B",
+  text: "#ECEFF3",
+  mute: "#8B93A1",
+  faint: "#565D68",
+  danger: "#E4604B",
+  live: "#E4604B",
+};
+
+const STORE_USERS = "flex-esports:users";
+const STORE_SESSION = "flex-esports:session";
+const STORE_CONTENT = "flex-esports:content";
+
+const ADMIN_SEED = { name: "Administrador Flex", email: "admin@flexesports.com", password: "Admin123", role: "admin" };
+
+const DEFAULT_CONTENT = {
+  featuredEvent: {
+    name: "Flex Championship — Temporada 4",
+    stage: "Gran Final",
+    prizePool: "$52,000",
+    map: "Erangel",
+    dateLabel: "Sáb 12 sep · 18:00",
+  },
+  liveMatch: {
+    map: "Miramar",
+    round: "Ronda 4 de 6",
+    teamsAlive: 9,
+    zone: "Círculo 5",
+    leaderTeam: "Halcón Rojo",
+    leaderKills: 11,
+  },
+  upcoming: [
+    { id: "u1", time: "19:30", label: "Flex Championship — Ronda 5", map: "Sanhok" },
+    { id: "u2", time: "21:00", label: "Liga Flex — Semana 8", map: "Erangel" },
+    { id: "u3", time: "Dom 13:00", label: "Clasificatorio Abierto", map: "Miramar" },
+  ],
+  standings: [
+    { id: "s1", team: "Halcón Rojo", pts: 187 },
+    { id: "s2", team: "Ceniza Nocturna", pts: 172 },
+    { id: "s3", team: "Frente Austral", pts: 165 },
+    { id: "s4", team: "Vórtice Andino", pts: 151 },
+    { id: "s5", team: "Legión Obsidiana", pts: 140 },
+  ],
+  teams: [
+    { id: "t1", name: "Halcón Rojo", tag: "HLC", region: "Región Andina" },
+    { id: "t2", name: "Ceniza Nocturna", tag: "CEN", region: "Cono Sur" },
+    { id: "t3", name: "Frente Austral", tag: "FRA", region: "Cono Sur" },
+    { id: "t4", name: "Vórtice Andino", tag: "VOR", region: "Región Andina" },
+  ],
+  players: [
+    { id: "p1", name: "Mateo \"Nortex\" Rueda", team: "HLC", role: "Fragger", kd: "4.8" },
+    { id: "p2", name: "Sofía \"Ashline\" Peralta", team: "CEN", role: "IGL", kd: "3.1" },
+    { id: "p3", name: "Diego \"Wraith7\" Salas", team: "FRA", role: "Scout", kd: "4.2" },
+  ],
+  news: [
+    { id: "n1", tag: "Traspaso", title: "Nortex firma con Halcón Rojo para la Temporada 4", time: "3 h" },
+    { id: "n2", tag: "Torneo", title: "Bolsa de premios confirmada en $52,000", time: "1 d" },
+    { id: "n3", tag: "Resultado", title: "Ceniza Nocturna toma el liderato de la liga", time: "2 d" },
+  ],
+  stats: [
+    { id: "st1", label: "Equipos activos", value: "68" },
+    { id: "st2", label: "Jugadores", value: "412" },
+    { id: "st3", label: "Partidas 2026", value: "1,204" },
+    { id: "st4", label: "Premios 2026", value: "$210K" },
+  ],
+};
+
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
+}
+
+// Storage adapter: uses Claude's persistent artifact storage when available.
+// Real browser storage — this version runs standalone (GitHub Pages, Vercel,
+// your own hosting), so it uses the browser's own localStorage instead of
+// Claude's artifact storage bridge. Data persists per-browser, per-device.
+// IMPORTANT: this is still a client-side demo — passwords are stored in
+// plain text in the visitor's own browser. Fine for testing/demo, NOT for
+// real user accounts. For that you'd need a real backend (see README.md).
+const HAS_HOST_STORAGE = true;
+const storageAdapter = {
+  async get(key, shared) {
+    const raw = window.localStorage.getItem(key);
+    if (raw === null) throw new Error("not found");
+    return { key, value: raw, shared };
+  },
+  async set(key, value, shared) {
+    try {
+      window.localStorage.setItem(key, value);
+      return { key, value, shared };
+    } catch (e) {
+      return null;
+    }
+  },
+  async delete(key, shared) {
+    window.localStorage.removeItem(key);
+    return { key, deleted: true, shared };
+  },
+  async list(prefix, shared) {
+    return { keys: Object.keys(window.localStorage) };
+  },
+};
+
+function Icon({ name, size = 20, color = "currentColor" }) {
+  const s = { width: size, height: size, display: "block", flexShrink: 0 };
+  const st = { fill: "none", stroke: color, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
+  if (name === "home") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M3 11l9-7 9 7" /><path {...st} d="M5 10v10h14V10" /></svg>;
+  if (name === "cup") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M7 4h10v6a5 5 0 01-10 0V4z" /><path {...st} d="M7 6H4a3 3 0 003 5M17 6h3a3 3 0 01-3 5" /><path {...st} d="M10 18h4M12 15v3M8 21h8" /></svg>;
+  if (name === "chart") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M4 20V10M12 20V4M20 20v-7" /></svg>;
+  if (name === "user") return <svg style={s} viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6" {...st} /><path {...st} d="M4.5 20c1.6-3.6 5-5 7.5-5s5.9 1.4 7.5 5" /></svg>;
+  if (name === "shield") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" /><path {...st} d="M9 12l2 2 4-4" /></svg>;
+  if (name === "eye") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="2.6" {...st} /></svg>;
+  if (name === "lock") return <svg style={s} viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="1.4" {...st} /><path {...st} d="M8 10.5V7.5a4 4 0 018 0v3" /></svg>;
+  if (name === "logout") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M14 6V4H5v16h9v-2" /><path {...st} d="M9 12h11M17 8l3.5 4L17 16" /></svg>;
+  if (name === "trash") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13" /></svg>;
+  if (name === "plus") return <svg style={s} viewBox="0 0 24 24"><path {...st} d="M12 5v14M5 12h14" /></svg>;
+  return null;
+}
+
+const TABS = [
+  { key: "inicio", label: "Inicio", icon: "home" },
+  { key: "torneos", label: "Torneos", icon: "cup" },
+  { key: "ranking", label: "Ranking", icon: "chart" },
+  { key: "perfil", label: "Perfil", icon: "user" },
+];
+const ADMIN_TAB = { key: "admin", label: "Admin", icon: "shield" };
+
+function FlexEsportsBeta() {
+  const [booting, setBooting] = useState(true);
+  const [session, setSession] = useState(null);
+  const [content, setContent] = useState(DEFAULT_CONTENT);
+  const [authMode, setAuthMode] = useState("login");
+  const [activeTab, setActiveTab] = useState("inicio");
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [debugUsers, setDebugUsers] = useState([]);
+  const [debugNote, setDebugNote] = useState("");
+
+  async function refreshDebugUsers() {
+    try {
+      const r = await storageAdapter.get(STORE_USERS, false);
+      const users = r && r.value ? JSON.parse(r.value) : [];
+      setDebugUsers(users.map((u) => u.email));
+    } catch (e) {
+      setDebugUsers([]);
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        let users = [];
+        try {
+          const r = await storageAdapter.get(STORE_USERS, false);
+          users = r && r.value ? JSON.parse(r.value) : [];
+        } catch (e) {
+          console.warn("Flex Esports: no había usuarios guardados todavía.", e);
+          users = [];
+        }
+        if (!users.find((u) => u.email === ADMIN_SEED.email)) {
+          users = [...users, ADMIN_SEED];
+          const seeded = await storageAdapter.set(STORE_USERS, JSON.stringify(users), false);
+          if (!seeded) setDebugNote("No se pudo guardar la cuenta admin de prueba (storageAdapter.set devolvió vacío).");
+        }
+
+        try {
+          const c = await storageAdapter.get(STORE_CONTENT, true);
+          if (c && c.value) setContent(JSON.parse(c.value));
+          else await storageAdapter.set(STORE_CONTENT, JSON.stringify(DEFAULT_CONTENT), true);
+        } catch (e) {
+          await storageAdapter.set(STORE_CONTENT, JSON.stringify(DEFAULT_CONTENT), true);
+        }
+
+        try {
+          const s = await storageAdapter.get(STORE_SESSION, false);
+          if (s && s.value) setSession(JSON.parse(s.value));
+        } catch (e) {}
+
+        await refreshDebugUsers();
+      } catch (e) {
+        console.error("Flex Esports: error inesperado al iniciar.", e);
+        setDebugNote("Error al iniciar: " + (e && e.message ? e.message : String(e)));
+      }
+      setBooting(false);
+    })();
+  }, []);
+
+  async function persistContent(next) {
+    setContent(next);
+    try {
+      await storageAdapter.set(STORE_CONTENT, JSON.stringify(next), true);
+    } catch (e) {}
+  }
+
+  async function getUsers() {
+    try {
+      const r = await storageAdapter.get(STORE_USERS, false);
+      return r && r.value ? JSON.parse(r.value) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    setError("");
+    if (!form.name.trim() || !form.email.trim() || !form.password) {
+      setError("Completa nombre, correo y contraseña.");
+      return;
+    }
+    if (form.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const users = await getUsers();
+      const exists = users.find((u) => u.email.toLowerCase() === form.email.trim().toLowerCase());
+      if (exists) {
+        setError("Ya existe una cuenta con ese correo.");
+        setBusy(false);
+        return;
+      }
+      const newUser = { name: form.name.trim(), email: form.email.trim(), password: form.password.trim(), role: "player" };
+      const updated = [...users, newUser];
+      const saved = await storageAdapter.set(STORE_USERS, JSON.stringify(updated), false);
+      if (!saved) throw new Error("guardar usuario devolvió vacío");
+      await refreshDebugUsers();
+      const sessionUser = { name: newUser.name, email: newUser.email, role: newUser.role };
+      await storageAdapter.set(STORE_SESSION, JSON.stringify(sessionUser), false);
+      setSession(sessionUser);
+      setForm({ name: "", email: "", password: "" });
+    } catch (err) {
+      setError("Error al crear la cuenta: " + (err && err.message ? err.message : "desconocido"));
+    }
+    setBusy(false);
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError("");
+    if (!form.email.trim() || !form.password) {
+      setError("Ingresa tu correo y contraseña.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const users = await getUsers();
+      await refreshDebugUsers();
+      const typedEmail = form.email.trim().toLowerCase();
+      const typedPassword = form.password.trim();
+      const byEmail = users.find((u) => u.email.toLowerCase() === typedEmail);
+      if (!byEmail) {
+        setError("No existe una cuenta con ese correo. Mira abajo la lista de correos guardados ahora mismo.");
+        setBusy(false);
+        return;
+      }
+      if (byEmail.password.trim() !== typedPassword) {
+        setError("La contraseña no coincide con la guardada para ese correo.");
+        setBusy(false);
+        return;
+      }
+      const sessionUser = { name: byEmail.name, email: byEmail.email, role: byEmail.role || "player" };
+      await storageAdapter.set(STORE_SESSION, JSON.stringify(sessionUser), false);
+      setSession(sessionUser);
+      setForm({ name: "", email: "", password: "" });
+    } catch (err) {
+      setError("Error al iniciar sesión: " + (err && err.message ? err.message : "desconocido"));
+    }
+    setBusy(false);
+  }
+
+  async function handleLogout() {
+    try {
+      await storageAdapter.delete(STORE_SESSION, false);
+    } catch (e) {}
+    setSession(null);
+    setActiveTab("inicio");
+  }
+
+  async function handleResetDemoData() {
+    setBusy(true);
+    setError("");
+    try {
+      await storageAdapter.set(STORE_USERS, JSON.stringify([ADMIN_SEED]), false);
+      try {
+        await storageAdapter.delete(STORE_SESSION, false);
+      } catch (e) {}
+      await refreshDebugUsers();
+      setError("Datos de prueba reiniciados. Ya puedes iniciar sesión con admin@flexesports.com / Admin123.");
+    } catch (e) {
+      setError("No se pudo reiniciar: " + (e && e.message ? e.message : "desconocido"));
+    }
+    setBusy(false);
+  }
+
+  const inputStyle = {
+    width: "100%", background: C.surface2, border: `1px solid ${C.line}`, color: C.text,
+    fontSize: 15, padding: "12px 14px", borderRadius: 8, outline: "none", boxSizing: "border-box",
+  };
+  const labelStyle = { fontSize: 12, color: C.mute, marginBottom: 6, display: "block" };
+
+  const isAdmin = session && session.role === "admin";
+  const tabs = isAdmin ? [...TABS, ADMIN_TAB] : TABS;
+
+  return (
+    <div style={{ background: "#000", minHeight: "100vh", width: "100%", display: "flex", justifyContent: "center", padding: "18px 0", fontFamily: "Inter, sans-serif" }}>
+      <style>{FONTS}</style>
+
+      <div style={{
+        width: 390, maxWidth: "100%", background: C.bg, borderRadius: 34, border: `8px solid #1A1D22`,
+        overflow: "hidden", position: "relative", boxShadow: "0 0 0 1px #000", minHeight: 780, display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 130, height: 22, background: "#1A1D22", borderRadius: "0 0 14px 14px", zIndex: 20 }} />
+
+        <div style={{ padding: "34px 18px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${C.line}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 26, height: 26, borderRadius: 6, background: C.teal, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 14, color: "#06201D" }}>F</div>
+            <span style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 0.2 }}>Flex Esports</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {isAdmin && (
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: "#06201D", background: C.teal, borderRadius: 4, padding: "2px 6px", letterSpacing: 0.4 }}>ADMIN</span>
+            )}
+            <span style={{ fontSize: 10, fontWeight: 600, color: C.amber, border: `1px solid ${C.amber}`, borderRadius: 4, padding: "2px 7px", letterSpacing: 0.6 }}>BETA · MÓVIL</span>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", color: C.text }}>
+          {booting ? (
+            <div style={{ padding: 40, textAlign: "center", color: C.mute, fontSize: 13 }}>Cargando…</div>
+          ) : !session ? (
+            <AuthScreen
+              authMode={authMode} setAuthMode={setAuthMode}
+              form={form} setForm={setForm}
+              onLogin={handleLogin} onRegister={handleRegister}
+              error={error} busy={busy}
+              showPw={showPw} setShowPw={setShowPw}
+              inputStyle={inputStyle} labelStyle={labelStyle}
+              onReset={handleResetDemoData}
+              debugUsers={debugUsers} debugNote={debugNote}
+            />
+          ) : (
+            <>
+              {activeTab === "inicio" && <HomeTab session={session} content={content} />}
+              {activeTab === "torneos" && <TorneosTab content={content} />}
+              {activeTab === "ranking" && <RankingTab content={content} />}
+              {activeTab === "perfil" && <PerfilTab session={session} onLogout={handleLogout} />}
+              {activeTab === "admin" && isAdmin && <AdminTab content={content} onSave={persistContent} />}
+            </>
+          )}
+        </div>
+
+        {session && (
+          <div style={{ display: "flex", borderTop: `1px solid ${C.line}`, background: C.surface, padding: "8px 4px 14px" }}>
+            {tabs.map((t) => (
+              <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                flex: 1, background: "transparent", border: "none", display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 4, padding: "6px 0", cursor: "pointer",
+                color: activeTab === t.key ? C.teal : C.faint,
+              }}>
+                <Icon name={t.icon} size={19} color={activeTab === t.key ? C.teal : C.faint} />
+                <span style={{ fontSize: 10, fontWeight: 500 }}>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AuthScreen({ authMode, setAuthMode, form, setForm, onLogin, onRegister, error, busy, showPw, setShowPw, inputStyle, labelStyle, onReset, debugUsers, debugNote }) {
+  return (
+    <div style={{ padding: "28px 22px 40px" }}>
+      <h1 style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 24, fontWeight: 700, margin: "10px 0 4px" }}>
+        {authMode === "login" ? "Bienvenido de vuelta" : "Crea tu cuenta"}
+      </h1>
+      <p style={{ fontSize: 13, color: C.mute, margin: "0 0 26px" }}>
+        {authMode === "login" ? "Ingresa para ver torneos, equipos y tu ranking." : "Regístrate para seguir la competencia de Flex Esports."}
+      </p>
+
+      <form onSubmit={authMode === "login" ? onLogin : onRegister}>
+        {authMode === "register" && (
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Nombre completo</label>
+            <input style={inputStyle} value={form.name} placeholder="Tu nombre"
+              onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+        )}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Correo electrónico</label>
+          <input style={inputStyle} type="email" value={form.email} placeholder="nombre@correo.com"
+            onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label style={labelStyle}>Contraseña</label>
+          <div style={{ position: "relative" }}>
+            <input style={{ ...inputStyle, paddingRight: 42 }} type={showPw ? "text" : "password"} value={form.password}
+              placeholder="Mínimo 6 caracteres" onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            <button type="button" onClick={() => setShowPw(!showPw)} style={{
+              position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+              background: "transparent", border: "none", cursor: "pointer", color: C.faint, padding: 4,
+            }} aria-label="Mostrar contraseña">
+              <Icon name="eye" size={17} color={C.faint} />
+            </button>
+          </div>
+        </div>
+
+        {error && <div style={{ fontSize: 12.5, color: C.danger, margin: "10px 0 0" }}>{error}</div>}
+
+        <button type="submit" disabled={busy} style={{
+          width: "100%", background: C.teal, border: "none", color: "#06201D", fontWeight: 700, fontSize: 14,
+          padding: "13px 0", borderRadius: 8, marginTop: 20, cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1,
+        }}>
+          {busy ? "Un momento…" : authMode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+        </button>
+      </form>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "20px 0", color: C.faint, fontSize: 11 }}>
+        <div style={{ flex: 1, height: 1, background: C.line }} /> o <div style={{ flex: 1, height: 1, background: C.line }} />
+      </div>
+
+      <button onClick={() => setAuthMode(authMode === "login" ? "register" : "login")} style={{
+        width: "100%", background: "transparent", border: `1px solid ${C.lineStrong}`, color: C.text, fontSize: 13.5,
+        padding: "12px 0", borderRadius: 8, cursor: "pointer",
+      }}>
+        {authMode === "login" ? "Crear una cuenta nueva" : "Ya tengo una cuenta"}
+      </button>
+
+      <div style={{ display: "flex", gap: 6, marginTop: 24, padding: 12, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 8 }}>
+        <Icon name="lock" size={16} color={C.faint} />
+        <span style={{ fontSize: 11, color: C.faint, lineHeight: 1.5 }}>
+          Login local de prueba. Cuenta admin: admin@flexesports.com / Admin123
+          {" · Los datos se guardan en este navegador (localStorage)."}
+        </span>
+      </div>
+
+      <button type="button" onClick={onReset} style={{
+        width: "100%", background: "transparent", border: "none", color: C.faint, fontSize: 11,
+        textDecoration: "underline", padding: "12px 0 0", cursor: "pointer",
+      }}>
+        ¿Problemas para entrar? Reiniciar datos de prueba
+      </button>
+
+      <div style={{ marginTop: 16, padding: 10, background: "#0F1114", border: `1px dashed ${C.line}`, borderRadius: 8 }}>
+        <div style={{ fontSize: 10, color: C.faint, marginBottom: 4, letterSpacing: 0.4 }}>DIAGNÓSTICO</div>
+        <div style={{ fontSize: 11, color: C.mute, marginBottom: 3 }}>
+          Almacenamiento: localStorage de este navegador
+        </div>
+        <div style={{ fontSize: 11, color: C.mute }}>
+          Cuentas guardadas ahora mismo: {debugUsers && debugUsers.length > 0 ? debugUsers.join(", ") : "ninguna"}
+        </div>
+        {debugNote && <div style={{ fontSize: 11, color: C.amber, marginTop: 4 }}>{debugNote}</div>}
+      </div>
+    </div>
+  );
+}
+
+function TabHeader({ title }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "20px 18px 14px" }}>
+      <div style={{ width: 3, height: 16, background: C.teal }} />
+      <h2 style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 17, fontWeight: 600, margin: 0 }}>{title}</h2>
+    </div>
+  );
+}
+
+function HomeTab({ session, content }) {
+  const fe = content.featuredEvent, lm = content.liveMatch;
+  return (
+    <div style={{ paddingBottom: 20 }}>
+      <div style={{ padding: "18px 18px 0", fontSize: 13, color: C.mute }}>
+        Hola, <span style={{ color: C.text, fontWeight: 500 }}>{session.name.split(" ")[0]}</span>
+      </div>
+
+      <div style={{ margin: "14px 18px 0", background: `linear-gradient(150deg, ${C.surface2}, ${C.surface})`, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18 }}>
+        <div style={{ fontSize: 11, color: C.teal, letterSpacing: 0.5, marginBottom: 8, fontFamily: "Space Grotesk, sans-serif" }}>
+          {fe.stage} · {fe.dateLabel}
+        </div>
+        <div style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 19, lineHeight: 1.2, marginBottom: 10 }}>
+          {fe.name}
+        </div>
+        <div style={{ display: "flex", gap: 16, fontSize: 12, color: C.mute }}>
+          <span>{fe.map}</span><span>{fe.prizePool}</span>
+        </div>
+      </div>
+
+      <div style={{ margin: "14px 18px 0", background: "rgba(228,96,75,0.12)", border: `1px solid ${C.live}`, borderRadius: 10, padding: "10px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.live }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.live, letterSpacing: 0.5 }}>EN VIVO</span>
+        </div>
+        <div style={{ fontSize: 12.5, color: C.text }}>{lm.map} · {lm.zone} · {lm.teamsAlive} equipos con vida</div>
+        <div style={{ fontSize: 11.5, color: C.mute, marginTop: 2 }}>Líder: {lm.leaderTeam} — {lm.leaderKills} bajas</div>
+      </div>
+
+      <TabHeader title="Próximas partidas" />
+      <div style={{ padding: "0 18px" }}>
+        {content.upcoming.map((m, i) => (
+          <div key={m.id} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < content.upcoming.length - 1 ? `1px solid ${C.line}` : "none" }}>
+            <span style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 600, color: C.teal, fontSize: 13, width: 58 }}>{m.time}</span>
+            <div><div style={{ fontSize: 13 }}>{m.label}</div><div style={{ fontSize: 11, color: C.mute }}>{m.map}</div></div>
+          </div>
+        ))}
+      </div>
+
+      <TabHeader title="Equipos destacados" />
+      <div style={{ display: "flex", gap: 10, padding: "0 18px", overflowX: "auto" }}>
+        {content.teams.map((t) => (
+          <div key={t.id} style={{ minWidth: 128, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 10, padding: 14, flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, border: `1px solid ${C.lineStrong}`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 11, color: C.teal, marginBottom: 10 }}>{t.tag}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 500, marginBottom: 3 }}>{t.name}</div>
+            <div style={{ fontSize: 10.5, color: C.faint }}>{t.region}</div>
+          </div>
+        ))}
+      </div>
+
+      <TabHeader title="La temporada en números" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "0 18px 8px" }}>
+        {content.stats.map((s) => (
+          <div key={s.id} style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 21 }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: C.mute, marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <TabHeader title="Noticias" />
+      <div style={{ padding: "0 18px" }}>
+        {content.news.map((n, i) => (
+          <div key={n.id} style={{ padding: "10px 0", borderBottom: i < content.news.length - 1 ? `1px solid ${C.line}` : "none" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 9.5, color: C.amber, border: `1px solid ${C.amber}`, borderRadius: 4, padding: "1px 5px" }}>{n.tag.toUpperCase()}</span>
+              <span style={{ fontSize: 10.5, color: C.faint }}>{n.time}</span>
+            </div>
+            <div style={{ fontSize: 13 }}>{n.title}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TorneosTab({ content }) {
+  const fe = content.featuredEvent;
+  return (
+    <div style={{ paddingBottom: 20 }}>
+      <TabHeader title="Torneo destacado" />
+      <div style={{ margin: "0 18px", background: C.surface, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16 }}>
+        <div style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{fe.name}</div>
+        <div style={{ fontSize: 12, color: C.mute, marginBottom: 12 }}>{fe.stage} · {fe.dateLabel}</div>
+        <div style={{ display: "flex", gap: 18 }}>
+          <div><div style={{ fontSize: 10, color: C.faint }}>Premio</div><div style={{ fontSize: 14, fontWeight: 600 }}>{fe.prizePool}</div></div>
+          <div><div style={{ fontSize: 10, color: C.faint }}>Mapa</div><div style={{ fontSize: 14, fontWeight: 600 }}>{fe.map}</div></div>
+        </div>
+      </div>
+
+      <TabHeader title="Jugadores destacados" />
+      <div style={{ padding: "0 18px" }}>
+        {content.players.map((p) => (
+          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${C.line}` }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.surface2, border: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: C.teal }}>
+              {p.name.split('"')[0].trim()[0]}
+            </div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13 }}>{p.name}</div><div style={{ fontSize: 11, color: C.mute }}>{p.team} · {p.role}</div></div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.teal }}>{p.kd}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RankingTab({ content }) {
+  const sorted = [...content.standings].sort((a, b) => b.pts - a.pts);
+  return (
+    <div style={{ paddingBottom: 20 }}>
+      <TabHeader title="Clasificación general" />
+      <div style={{ margin: "0 18px", border: `1px solid ${C.line}`, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "26px 1fr 46px", padding: "8px 12px", fontSize: 10, color: C.faint, borderBottom: `1px solid ${C.line}`, background: C.surface }}>
+          <span>#</span><span>EQUIPO</span><span>PTS</span>
+        </div>
+        {sorted.map((s, i) => (
+          <div key={s.id} style={{ display: "grid", gridTemplateColumns: "26px 1fr 46px", padding: "10px 12px", fontSize: 13, borderBottom: `1px solid ${C.line}`, alignItems: "center", background: C.bg }}>
+            <span style={{ color: C.mute }}>{i + 1}</span>
+            <span>{s.team}</span>
+            <span style={{ fontFamily: "Space Grotesk, sans-serif", color: C.teal, fontWeight: 600 }}>{s.pts}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PerfilTab({ session, onLogout }) {
+  return (
+    <div style={{ padding: "24px 18px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
+        <div style={{ width: 54, height: 54, borderRadius: "50%", background: C.surface2, border: `1px solid ${C.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 19, color: C.teal }}>
+          {session.name[0].toUpperCase()}
+        </div>
+        <div>
+          <div style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 600, fontSize: 16 }}>{session.name}</div>
+          <div style={{ fontSize: 12, color: C.mute }}>{session.email}</div>
+          <div style={{ fontSize: 11, color: C.teal, marginTop: 2, textTransform: "capitalize" }}>{session.role === "admin" ? "Administrador" : "Jugador"}</div>
+        </div>
+      </div>
+
+      <div style={{ border: `1px solid ${C.line}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
+        {["Configuración de cuenta", "Notificaciones", "Equipo actual", "Historial de torneos"].map((item, i, arr) => (
+          <div key={item} style={{ padding: "13px 14px", fontSize: 13.5, borderBottom: i < arr.length - 1 ? `1px solid ${C.line}` : "none", background: C.surface }}>{item}</div>
+        ))}
+      </div>
+
+      <button onClick={onLogout} style={{
+        width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        background: "transparent", border: `1px solid ${C.danger}`, color: C.danger, fontSize: 13.5, fontWeight: 600,
+        padding: "12px 0", borderRadius: 8, cursor: "pointer",
+      }}>
+        <Icon name="logout" size={16} color={C.danger} /> Cerrar sesión
+      </button>
+    </div>
+  );
+}
+
+const ADMIN_SECTIONS = [
+  { key: "evento", label: "Torneo" },
+  { key: "vivo", label: "En vivo" },
+  { key: "equipos", label: "Equipos" },
+  { key: "jugadores", label: "Jugadores" },
+  { key: "ranking", label: "Ranking" },
+  { key: "partidas", label: "Partidas" },
+  { key: "noticias", label: "Noticias" },
+  { key: "stats", label: "Stats" },
+];
+
+function fieldStyle() {
+  return {
+    width: "100%", background: C.surface2, border: `1px solid ${C.line}`, color: C.text,
+    fontSize: 13, padding: "9px 11px", borderRadius: 7, outline: "none", boxSizing: "border-box", marginBottom: 8,
+  };
+}
+
+function AdminTab({ content, onSave }) {
+  const [section, setSection] = useState("evento");
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  function flashSaved() {
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1400);
+  }
+
+  function save(next) {
+    onSave(next);
+    flashSaved();
+  }
+
+  return (
+    <div style={{ paddingBottom: 24 }}>
+      <TabHeader title="Panel de administrador" />
+      <div style={{ padding: "0 18px 14px", fontSize: 12, color: C.mute }}>
+        Los cambios se publican para todos los usuarios de la app.
+      </div>
+
+      <div style={{ display: "flex", gap: 6, padding: "0 18px 16px", overflowX: "auto" }}>
+        {ADMIN_SECTIONS.map((s) => (
+          <button key={s.key} onClick={() => setSection(s.key)} style={{
+            flexShrink: 0, fontSize: 12, padding: "7px 12px", borderRadius: 20, cursor: "pointer",
+            background: section === s.key ? C.teal : "transparent",
+            color: section === s.key ? "#06201D" : C.mute,
+            border: `1px solid ${section === s.key ? C.teal : C.line}`,
+            fontWeight: section === s.key ? 600 : 400,
+          }}>{s.label}</button>
+        ))}
+      </div>
+
+      {savedFlash && (
+        <div style={{ margin: "0 18px 14px", background: "rgba(79,209,197,0.12)", border: `1px solid ${C.teal}`, color: C.teal, fontSize: 12, padding: "8px 12px", borderRadius: 8 }}>
+          Cambios publicados.
+        </div>
+      )}
+
+      <div style={{ padding: "0 18px" }}>
+        {section === "evento" && <EventoEditor content={content} save={save} />}
+        {section === "vivo" && <VivoEditor content={content} save={save} />}
+        {section === "equipos" && <ListEditor
+          items={content.teams} save={(items) => save({ ...content, teams: items })}
+          title="Nuevo equipo"
+          fields={[{ key: "name", ph: "Nombre del equipo" }, { key: "tag", ph: "Tag (ej. HLC)" }, { key: "region", ph: "Región" }]}
+          render={(it) => `${it.name} (${it.tag}) · ${it.region}`}
+        />}
+        {section === "jugadores" && <ListEditor
+          items={content.players} save={(items) => save({ ...content, players: items })}
+          title="Nuevo jugador"
+          fields={[{ key: "name", ph: "Nombre" }, { key: "team", ph: "Tag de equipo" }, { key: "role", ph: "Rol (IGL, Fragger...)" }, { key: "kd", ph: "K/D" }]}
+          render={(it) => `${it.name} · ${it.team} · ${it.role} · ${it.kd}`}
+        />}
+        {section === "ranking" && <ListEditor
+          items={content.standings} save={(items) => save({ ...content, standings: items })}
+          title="Nueva fila de clasificación"
+          fields={[{ key: "team", ph: "Equipo" }, { key: "pts", ph: "Puntos", numeric: true }]}
+          render={(it) => `${it.team} — ${it.pts} pts`}
+        />}
+        {section === "partidas" && <ListEditor
+          items={content.upcoming} save={(items) => save({ ...content, upcoming: items })}
+          title="Nueva partida próxima"
+          fields={[{ key: "time", ph: "Hora (ej. 19:30)" }, { key: "label", ph: "Nombre de la partida" }, { key: "map", ph: "Mapa" }]}
+          render={(it) => `${it.time} · ${it.label} · ${it.map}`}
+        />}
+        {section === "noticias" && <ListEditor
+          items={content.news} save={(items) => save({ ...content, news: items })}
+          title="Nueva noticia"
+          fields={[{ key: "tag", ph: "Categoría (Torneo, Traspaso...)" }, { key: "title", ph: "Titular" }, { key: "time", ph: "Hace... (ej. 2 h)" }]}
+          render={(it) => `[${it.tag}] ${it.title}`}
+        />}
+        {section === "stats" && <ListEditor
+          items={content.stats} save={(items) => save({ ...content, stats: items })}
+          title="Nueva estadística"
+          fields={[{ key: "label", ph: "Etiqueta (ej. Jugadores)" }, { key: "value", ph: "Valor (ej. 412)" }]}
+          render={(it) => `${it.label}: ${it.value}`}
+        />}
+      </div>
+    </div>
+  );
+}
+
+function EventoEditor({ content, save }) {
+  const [f, setF] = useState(content.featuredEvent);
+  const [err, setErr] = useState("");
+  function submit(e) {
+    e.preventDefault();
+    if (!f.name.trim() || !f.stage.trim()) { setErr("Nombre y etapa son obligatorios."); return; }
+    setErr("");
+    save({ ...content, featuredEvent: f });
+  }
+  return (
+    <form onSubmit={submit}>
+      <input style={fieldStyle()} value={f.name} placeholder="Nombre del torneo" onChange={(e) => setF({ ...f, name: e.target.value })} />
+      <input style={fieldStyle()} value={f.stage} placeholder="Etapa (ej. Gran Final)" onChange={(e) => setF({ ...f, stage: e.target.value })} />
+      <input style={fieldStyle()} value={f.prizePool} placeholder="Bolsa de premios" onChange={(e) => setF({ ...f, prizePool: e.target.value })} />
+      <input style={fieldStyle()} value={f.map} placeholder="Mapa" onChange={(e) => setF({ ...f, map: e.target.value })} />
+      <input style={fieldStyle()} value={f.dateLabel} placeholder="Fecha (ej. Sáb 12 sep · 18:00)" onChange={(e) => setF({ ...f, dateLabel: e.target.value })} />
+      {err && <div style={{ fontSize: 12, color: C.danger, marginBottom: 8 }}>{err}</div>}
+      <SaveBtn />
+    </form>
+  );
+}
+
+function VivoEditor({ content, save }) {
+  const [f, setF] = useState(content.liveMatch);
+  function submit(e) {
+    e.preventDefault();
+    save({ ...content, liveMatch: { ...f, teamsAlive: Number(f.teamsAlive) || 0, leaderKills: Number(f.leaderKills) || 0 } });
+  }
+  return (
+    <form onSubmit={submit}>
+      <input style={fieldStyle()} value={f.map} placeholder="Mapa" onChange={(e) => setF({ ...f, map: e.target.value })} />
+      <input style={fieldStyle()} value={f.round} placeholder="Ronda (ej. Ronda 4 de 6)" onChange={(e) => setF({ ...f, round: e.target.value })} />
+      <input style={fieldStyle()} value={f.zone} placeholder="Círculo actual" onChange={(e) => setF({ ...f, zone: e.target.value })} />
+      <input style={fieldStyle()} type="number" value={f.teamsAlive} placeholder="Equipos con vida" onChange={(e) => setF({ ...f, teamsAlive: e.target.value })} />
+      <input style={fieldStyle()} value={f.leaderTeam} placeholder="Equipo líder" onChange={(e) => setF({ ...f, leaderTeam: e.target.value })} />
+      <input style={fieldStyle()} type="number" value={f.leaderKills} placeholder="Bajas del líder" onChange={(e) => setF({ ...f, leaderKills: e.target.value })} />
+      <SaveBtn />
+    </form>
+  );
+}
+
+function SaveBtn() {
+  return (
+    <button type="submit" style={{
+      width: "100%", background: C.teal, border: "none", color: "#06201D", fontWeight: 700, fontSize: 13,
+      padding: "11px 0", borderRadius: 8, cursor: "pointer", marginTop: 4,
+    }}>Guardar cambios</button>
+  );
+}
+
+function ListEditor({ items, save, title, fields, render }) {
+  const emptyDraft = {};
+  fields.forEach((f) => (emptyDraft[f.key] = ""));
+  const [draft, setDraft] = useState(emptyDraft);
+  const [err, setErr] = useState("");
+
+  function add(e) {
+    e.preventDefault();
+    const missing = fields.some((f) => !String(draft[f.key]).trim());
+    if (missing) { setErr("Completa todos los campos antes de publicar."); return; }
+    setErr("");
+    const newItem = { id: uid() };
+    fields.forEach((f) => (newItem[f.key] = f.numeric ? Number(draft[f.key]) || 0 : draft[f.key].trim()));
+    save([...items, newItem]);
+    setDraft(emptyDraft);
+  }
+
+  function remove(id) {
+    save(items.filter((it) => it.id !== id));
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: C.mute, marginBottom: 8 }}>{title}</div>
+      <form onSubmit={add}>
+        {fields.map((f) => (
+          <input key={f.key} style={fieldStyle()} type={f.numeric ? "number" : "text"} value={draft[f.key]}
+            placeholder={f.ph} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} />
+        ))}
+        {err && <div style={{ fontSize: 12, color: C.danger, marginBottom: 8 }}>{err}</div>}
+        <button type="submit" style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          background: "transparent", border: `1px solid ${C.teal}`, color: C.teal, fontWeight: 600, fontSize: 13,
+          padding: "10px 0", borderRadius: 8, cursor: "pointer", marginBottom: 18,
+        }}>
+          <Icon name="plus" size={15} color={C.teal} /> Publicar
+        </button>
+      </form>
+
+      <div style={{ border: `1px solid ${C.line}`, borderRadius: 10, overflow: "hidden" }}>
+        {items.length === 0 && (
+          <div style={{ padding: 14, fontSize: 12, color: C.faint, background: C.surface }}>Aún no hay elementos.</div>
+        )}
+        {items.map((it, i) => (
+          <div key={it.id} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "11px 12px",
+            background: C.surface, borderBottom: i < items.length - 1 ? `1px solid ${C.line}` : "none",
+          }}>
+            <span style={{ fontSize: 12.5, flex: 1 }}>{render(it)}</span>
+            <button onClick={() => remove(it.id)} aria-label="Eliminar" style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}>
+              <Icon name="trash" size={16} color={C.danger} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+    try {
+      ReactDOM.createRoot(document.getElementById("root")).render(<FlexEsportsBeta />);
+    } catch (e) {
+      document.getElementById("root").innerHTML =
+        '<div style="color:#E4604B;background:#1A1D22;padding:20px;margin:16px;border-radius:8px;font-family:monospace;font-size:12px;white-space:pre-wrap;">Error al iniciar la app:\n\n' + e.message + '</div>';
+    }
+  </script>
+</body>
+</html>
